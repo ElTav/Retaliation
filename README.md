@@ -1,6 +1,5 @@
 ## RETALIATION - A Jenkins "Extreme Feedback" Contraption
 
-*Lava Lamps are for pussies! Retaliate to a broken build with a barrage of foam missiles.*
 
 ### Summary
 
@@ -20,26 +19,6 @@ improvements unseen in all those other "extreme programming" things external con
 speak about. The primal threat of mutually assured destruction lurking in every coder's 
 psyche ensures that even your sloppiest developers will never forget to "checkin that 
 missing file" again!
-
-### Testimonials
-
-***
-> <em>Retaliation brought us the productivity improvement pair-programming promised but 
-> could never deliver! We've seen a 13.37% decrease in build breakage since its 
-> implementation.</em>
-> 
->    **Will, Chief Code Hacker**
-***
-> <em>Honestly, would you work in a dev team with a Lava Lamp build notifier? What next?
-> Nyan Cat mouse mats? Real coders work under the threat of Retaliation!</em>
-> 
->    **Matt, Coding Machine**
-***
-> <em>Does what it says on the box. I've seen improvements in my team and we haven't even 
-> installed it yet! Just the sheer threat has kicked my team's coding into line.</em>
-> 
->    **Tom, Head Code Captain**
-***
 
 You can see *Retaliation* in action <a href="http://www.youtube.com/watch?v=1EGk2rvZe8A">
 in this video</a>.
