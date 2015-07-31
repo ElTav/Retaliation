@@ -17,7 +17,7 @@
 
 ############################################################################
 # 
-# RETALIATION - A Jenkins "Extreme Feedback" Contraption
+# RETALIATION - A Teamcity "Extreme Feedback" Contraption
 #
 #    Lava Lamps are for pussies! Retaliate to a broken build with a barrage 
 #    of foam missiles.
@@ -31,7 +31,7 @@
 #
 #  3.  Modify your `COMMAND_SETS` in the `retaliation.py` script to define 
 #      your targeting commands for each one of your build-braking coders 
-#      (their user ID as listed in Jenkins).  A command set is an array of 
+#      (their user ID as listed in Teamcity).  A command set is an array of 
 #      move and fire commands. It is recommend to start each command set 
 #      with a "zero" command.  This parks the launcher in a known position 
 #      (bottom-left).  You can then use "up" and "right" followed by a 
@@ -45,7 +45,7 @@
 #      Trial and error is the best approch. Consider doing this secretly 
 #      after hours for best results!
 #
-#  4.  Setup the Jenkins "notification" plugin. Define a UDP endpoint 
+#  4.  Setup the Teamcity "notification" plugin. Define a UDP endpoint 
 #      on port 22222 pointing to the system hosting this script.
 #      Tip: Make sure your firewall is not blocking UDP on this port.
 #
@@ -93,12 +93,25 @@ import usb.util
 # is milli-seconds. The number after "fire" denotes the number of rockets
 # to shoot.
 #
-COMMAND_SETS = {
-    "will" : (
+
+# for the first launcher
+COMMAND_SETS1 = {
+    "wuhqureshi" : (
         ("zero", 0), # Zero/Park to know point (bottom-left)
         ("led", 1), # Turn the LED on
         ("right", 3250),
-        ("up", 540),
+        ("up", 240),
+        ("fire", 4), # Fire a full barrage of 4 missiles
+        ("led", 0), # Turn the LED back off
+        ("zero", 0), # Park after use for next time
+    ),
+	"paul.ness" : (
+        ("zero", 0), # Zero/Park to know point (bottom-left)
+        ("led", 1), # Turn the LED on
+        ("right", 3250),
+		("zero", 0),
+		("right", 1850),
+        ("up", 140),
         ("fire", 4), # Fire a full barrage of 4 missiles
         ("led", 0), # Turn the LED back off
         ("zero", 0), # Park after use for next time
@@ -110,7 +123,7 @@ COMMAND_SETS = {
         ("fire", 4),
         ("zero", 0),
     ),
-    "chris" : (      # That's me - just dance around and missfire!
+    "phil" : (      # That's me - just dance around and missfire!
         ("zero", 0),
         ("right", 5200),
         ("up", 500),
@@ -121,24 +134,37 @@ COMMAND_SETS = {
         ("zero", 0),
     ),
 }
+# for the second launcher
+COMMAND_SETS2 = {
+    "leandro" : (
+        ("zero", 0), 
+        ("led", 1), 
+        ("right", 3250),
+        ("up", 300),
+        ("fire", 3), 
+        ("led", 0), 
+        ("zero", 0), 
+    ),
+}
+
 
 #
-# The UDP port to listen to Jenkins events on (events are generated/supplied 
-# by Jenkins "notification" plugin)
+# The UDP port to listen to Teamcity events on (events are generated/supplied 
+# by Teamcity "notification" plugin)
 #
-JENKINS_NOTIFICATION_UDP_PORT   = 22222
+TEAMCITY_NOTIFICATION_UDP_PORT   = 22222
 
 #
-# The URL of your Jenkins server - used to callback to determine who broke 
+# The URL of your Teamcity server - used to callback to determine who broke 
 # the build.
 #
-JENKINS_SERVER                  = "http://192.168.1.100:23456"
+TEAMCITY_SERVER                  = "http://teamcity.haymarketmedia.com:7162"
 
 #
-# If you're Jenkins server is secured by HTTP basic auth, sent the
+# If you're Teamcity server is secured by HTTP basic auth, sent the
 # username and password here.  Else leave this blank.
-HTTPAUTH_USER                   = ""
-HTTPAUTH_PASS                   = ""
+HTTPAUTH_USER                   = "XXX"
+HTTPAUTH_PASS                   = "XXX"
 
 ##########################  ENG CONFIG  #########################
 
@@ -159,7 +185,7 @@ def usage():
     print "Usage: retaliation.py [command] [value]"
     print ""
     print "   commands:"
-    print "     stalk - sit around waiting for a Jenkins CI failed build"
+    print "     stalk - sit around waiting for a Teamcity CI failed build"
     print "             notification, then attack the perpetrator!"
     print ""
     print "     up    - move up <value> milliseconds"
@@ -181,14 +207,31 @@ def usage():
 def setup_usb():
     # Tested only with the Cheeky Dream Thunder
     # and original USB Launcher
-    global DEVICE 
+    global DEVICE1
+    global DEVICE2
+ 
     global DEVICE_TYPE
 
-    DEVICE = usb.core.find(idVendor=0x2123, idProduct=0x1010)
+    #DEVICE1 = usb.core.find(idVendor=0x2123, idProduct=0x1010)
+    #DEVICE2 = usb.core.find(idVendor=0x2123, idProduct=0x1010)
+    DEVICES = usb.core.find(find_all=True,idVendor=0x2123, idProduct=0x1010)
+    i = iter(DEVICES)
 
-    if DEVICE is None:
-        DEVICE = usb.core.find(idVendor=0x0a81, idProduct=0x0701)
-        if DEVICE is None:
+    DEVICE1 = i.next()
+    DEVICE2 = i.next()
+
+
+    if DEVICE1 is None or DEVICE2 is None:
+	DEVICES = usb.core.find(find_all=True,idVendor=0x0a81, idProduct=0x0701)
+    	i = iter(DEVICES)
+
+	DEVICE1 = i.next()
+	DEVICE2 = i.next()
+
+
+        if DEVICE1 is None:
+            raise ValueError('Missile device not found')
+	if DEVICE2 is None:
             raise ValueError('Missile device not found')
         else:
             DEVICE_TYPE = "Original"
@@ -200,81 +243,106 @@ def setup_usb():
     # On Linux we need to detach usb HID first
     if "Linux" == platform.system():
         try:
-            DEVICE.detach_kernel_driver(0)
+            DEVICE1.detach_kernel_driver(0)
+            DEVICE2.detach_kernel_driver(0)
+
         except Exception, e:
             pass # already unregistered    
 
-    DEVICE.set_configuration()
+    DEVICE1.set_configuration()
+    DEVICE2.set_configuration()
 
 
-def send_cmd(cmd):
+
+def send_cmd(cmd, device):
     if "Thunder" == DEVICE_TYPE:
-        DEVICE.ctrl_transfer(0x21, 0x09, 0, 0, [0x02, cmd, 0x00,0x00,0x00,0x00,0x00,0x00])
+	if device == 1:
+		DEVICE1.ctrl_transfer(0x21, 0x09, 0, 0, [0x02, cmd, 0x00,0x00,0x00,0x00,0x00,0x00])
+	elif device == 2:
+		DEVICE2.ctrl_transfer(0x21, 0x09, 0, 0, [0x02, cmd, 0x00,0x00,0x00,0x00,0x00,0x00])
+
     elif "Original" == DEVICE_TYPE:
-        DEVICE.ctrl_transfer(0x21, 0x09, 0x0200, 0, [cmd])
+        if device == 1:
+		DEVICE1.ctrl_transfer(0x21, 0x09, 0x0200, 0, [cmd])
+	elif device == 2:
+		DEVICE2.ctrl_transfer(0x21, 0x09, 0x0200, 0, [cmd])
 
-def led(cmd):
+
+def led(cmd, device):
     if "Thunder" == DEVICE_TYPE:
-        DEVICE.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, cmd, 0x00,0x00,0x00,0x00,0x00,0x00])
+	if device == 1:
+        	DEVICE1.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, cmd, 0x00,0x00,0x00,0x00,0x00,0x00])
+	elif device == 2:
+        	DEVICE2.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, cmd, 0x00,0x00,0x00,0x00,0x00,0x00])
+
     elif "Original" == DEVICE_TYPE:
         print("There is no LED on this device")
 
-def send_move(cmd, duration_ms):
-    send_cmd(cmd)
+def send_move(cmd, duration_ms, device):
+    send_cmd(cmd, device)
     time.sleep(duration_ms / 1000.0)
-    send_cmd(STOP)
+    send_cmd(STOP, device)
 
 
-def run_command(command, value):
+def run_command(command, value, dev):
     command = command.lower()
     if command == "right":
-        send_move(RIGHT, value)
+        send_move(RIGHT, value, dev)
     elif command == "left":
-        send_move(LEFT, value)
+        send_move(LEFT, value, dev)
     elif command == "up":
-        send_move(UP, value)
+        send_move(UP, value, dev)
     elif command == "down":
-        send_move(DOWN, value)
+        send_move(DOWN, value, dev)
     elif command == "zero" or command == "park" or command == "reset":
         # Move to bottom-left
-        send_move(DOWN, 2000)
-        send_move(LEFT, 8000)
+        send_move(DOWN, 2000, dev)
+        send_move(LEFT, 8000, dev)
     elif command == "pause" or command == "sleep":
         time.sleep(value / 1000.0)
     elif command == "led":
         if value == 0:
-            led(0x00)
+            led(0x00, dev)
         else:
-            led(0x01)
+            led(0x01, dev)
     elif command == "fire" or command == "shoot":
         if value < 1 or value > 4:
             value = 1
         # Stabilize prior to the shot, then allow for reload time after.
         time.sleep(0.5)
         for i in range(value):
-            send_cmd(FIRE)
+            send_cmd(FIRE, dev)
             time.sleep(4.5)
     else:
         print "Error: Unknown command: '%s'" % command
 
 
-def run_command_set(commands):
+def run_command_set(commands, dev):
     for cmd, value in commands:
-        run_command(cmd, value)
+        run_command(cmd, value, dev)
 
 
-def jenkins_target_user(user):
+def teamcity_target_user(user):
+	
     match = False
     # Not efficient but our user list is probably less than 1k.
     # Do a case insenstive search for convenience.
-    for key in COMMAND_SETS:
+    for key in COMMAND_SETS1:
         if key.lower() == user.lower():
             # We have a command set that targets our user so got for it!
-            run_command_set(COMMAND_SETS[key])
+            run_command_set(COMMAND_SETS[key], 1)
             match = True
             break
+	for key in COMMAND_SETS2:
+		if key.lower() == user.lower():
+			# We have a command set that targets our user so got for it!
+			run_command_set(COMMAND_SETS[key], 2)
+			match = True
+			break
     if not match:
         print "WARNING: No target command set defined for user %s" % user
+	if match:
+		print "Toast"
 
 
 def read_url(url):
@@ -284,49 +352,60 @@ def read_url(url):
         authstring = base64.encodestring('%s:%s' % (HTTPAUTH_USER, HTTPAUTH_PASS))
         authstring = authstring.replace('\n', '')
         request.add_header("Authorization", "Basic %s" % authstring)
-
+        request.add_header("Accept", "application/json, text/javascript")
+        
     return urllib2.urlopen(request).read()
 
 
-def jenkins_get_responsible_user(job_name):
-    # Call back to Jenkins and determin who broke the build. (Hacky)
+def teamcity_get_responsible_user():
+    # Call back to Teamcity and determin who broke the build. (Hacky)
     # We do this by crudly parsing the changes on the last failed build
     
-    changes_url = JENKINS_SERVER + "/job/" + job_name + "/lastFailedBuild/changes"
+    changes_url = TEAMCITY_SERVER + "/httpAuth/app/rest/builds/running:false,status:failure"
     changedata = read_url(changes_url)
-
+   
     # Look for the /user/[name] link
-    m = re.compile('/user/([^/"]+)').search(changedata)
+    m = re.compile('"username":"([^/"]+)').search(changedata)
+    if m:
+        print "Target identified '%s'" % m.group(1)
+        return m.group(1)
+    else:
+        return None
+		
+def teamcity_get_broken_build_info():
+    # Call back to Teamcity and determin who broke the build. (Hacky)
+    # We do this by crudly parsing the changes on the last failed build
+    
+    changes_url = TEAMCITY_SERVER + "/httpAuth/app/rest/builds/running:false,status:failure"
+    changedata = read_url(changes_url)
+   
+    # Look for the /user/[name] link
+    m = re.compile('"projectName":"([^/"]+)').search(changedata)
     if m:
         return m.group(1)
     else:
         return None
 
 
-def jenkins_wait_for_event():
+def teamcity_wait_for_event():
 
     # Data in the format: 
     #   {"name":"Project", "url":"JobUrl", "build":{"number":1, "phase":"STARTED", "status":"FAILURE" }}
+	try:
+		while True:
+			target = teamcity_get_responsible_user()
+			build = teamcity_get_broken_build_info()
+			if target == None:
+				print "WARNING: Could not identify the user who broke the build!"
+				continue
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('', JENKINS_NOTIFICATION_UDP_PORT))
-
-    while True:
-        data, addr = sock.recvfrom(8 * 1024)
-        try:
-            notification_data = json.loads(data)
-            status = notification_data["build"]["status"].upper()
-            phase  = notification_data["build"]["phase"].upper()
-            if phase == "FINISHED" and status.startswith("FAIL"):
-                target = jenkins_get_responsible_user(notification_data["name"])
-                if target == None:
-                    print "WARNING: Could not identify the user who broke the build!"
-                    continue
-
-                print "Build Failed! Targeting user: " + target
-                jenkins_target_user(target)
-        except:
-            pass
+			print "Build Failed! Broken project is: " + build
+			print "Build Failed! Targeting user: " + target			
+			teamcity_target_user(target)
+			time.sleep(60)
+	except KeyboardInterrupt:
+		pass
+			
                 
 
 def main(args):
@@ -338,21 +417,28 @@ def main(args):
     setup_usb()
 
     if args[1] == "stalk":
-        print "Listening and waiting for Jenkins failed build events..."
-        jenkins_wait_for_event()
+        print "Listening and waiting for Teamcity failed build events..."
+        teamcity_wait_for_event()
+        #teamcity_get_responsible_user()
         # Will never return
         return
+    command = args[1]
+
+    if command in COMMAND_SETS1:
+        run_command_set(COMMAND_SETS1[command], 1)
+    if command in COMMAND_SETS2:
+        run_command_set(COMMAND_SETS2[command], 2)
 
     # Process any passed commands or command_sets
-    command = args[1]
+    command = args[2]
     value = 0
+    device = args[1]
     if len(args) > 2:
-        value = int(args[2])
+        value = int(args[3])
 
-    if command in COMMAND_SETS:
-        run_command_set(COMMAND_SETS[command])
+
     else:
-        run_command(command, value)
+        run_command(command, value, int(dev))
 
 
 if __name__ == '__main__':
