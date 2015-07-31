@@ -49,10 +49,10 @@ in this video</a>.
   1.  Mount your <a href="http://www.dreamcheeky.com/thunder-missile-launcher">Dream Cheeky Thunder USB Missile Launcher</a> 
       in a central and fixed location.
 
-  2.  Download the <a href="https://github.com/codedance/Retaliation/raw/master/retaliation.py">retaliation.py</a> 
+  2.  Download the <a href="https://github.com/ElTav/Retaliation/blob/master/retaliation2.py">retaliation2.py</a> 
       script onto the system connected to your missile launcher.
 
-  3.  Modify your `COMMAND_SETS` in the `retaliation.py` script to define your targeting 
+  3.  Modify your `COMMAND_SETS` in the `retaliatio2n.py` script to define your targeting 
       commands for each one of your build-braking coders (their user ID as listed 
       in Jenkins).  A command set is an array of move and fire commands. It is recommend
       to start each command set with a "zero" command.  This parks the launcher in a known
@@ -136,11 +136,7 @@ management software) for "coping a few in the head" during testing!
 USB Missile Launcher*.  You can invoke it to control the device from a script or 
 command-line as follows:
 
-      retaliation.py reset
-      retaliation.py right 3000
-      retaliation.py up 700
-      retaliation.py fire 1
+      retaliation.py 1 right 3000 (moves device one to the right)
+      retaliation.py 2 up 700 (devices device two up)
+      retaliation.py 1 fire 1 (device one will fire a missile)
 
-If you do come up with some other cool uses or ideas for retaliation, please share 
-your story!
-        
